@@ -1,23 +1,35 @@
-extends layout
+doctype html
+html
+  head
+    title Task List
+    link(rel="stylesheet" href="/styles.css")
+  body
+    .container
+      h1 Task List
 
-block content
-  h1= title
-  p Welcome to #{title}
-  ol
-  each val in todos
-    li
-      span= val.task + ' - '
-      if val.completed > 0
-        span Completed
-      else
-        pan Not Completed
-      form(method='POST' action='/delete')
-        input(type='hidden', name='id', value=val.id)
-        button(type='submit') Delete
+      if error === 'empty'
+        p.error Cannot submit an empty task!
 
-  hr
-  h2 Add a new task
-  form(method='POST' action='/create')
-    label(for='task') Task:
-    input(type='text', name='task', id='task', required)
-    button(type='submit') Create Task
+      // ADD TASK FORM
+      form(action="/add" method="POST" class="add-form")
+        input(type="text" name="task" placeholder="New task" required)
+        button(type="submit") Add Task
+
+      ul
+        each task in tasks
+          li(class=task.completed ? "completed" : "")
+            .task-text= task.task
+
+            if !task.completed
+              // COMPLETE BUTTON
+              form(action=`/complete/${task.id}` method="POST")
+                button.complete-btn(type="submit") Complete
+
+            // EDIT FORM
+            form(action=`/edit/${task.id}` method="POST" class="edit-form")
+              input(type="text" name="task" value=task.task required)
+              button.edit-btn(type="submit") Save
+
+            // DELETE
+            form(action=`/delete/${task.id}` method="POST")
+              button.delete-btn(type="submit") Delete
