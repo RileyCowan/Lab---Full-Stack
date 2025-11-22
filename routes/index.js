@@ -1,56 +1,47 @@
 var express = require('express');
 var router = express.Router();
+const db = require('../bin/db');
 
-/* GET home page. */
-router.get('/', function(req, res, next){
-  try {
-    req.db.query('SELECT * FROM todos;', (err, results) => {
-      if (err) {
-        console.error('Error fetching todos:', err);
-        return res.status(500).send('Error fetching todos');
-      }
-      res.render('index', { title: 'My Simple TODO', todos: results });
-    });
-  } catch (error) {
-    console.error('Error fetching items:', error);
-    res.status(500).send('Error fetching items');
+// Show all tasks
+router.get('/', async function(req, res, next) {
+  const [rows] = await db.query("SELECT * FROM tasks ORDER BY id DESC");
+  res.render('index', { title: 'Task List', tasks: rows });
+});
+
+// Add new task
+router.post('/add', async function(req, res, next) {
+  const task = req.body.task;
+
+  if (!task || task.trim() === "") {
+    return res.redirect('/?error=empty');
   }
+
+  await db.query("INSERT INTO tasks (task, completed) VALUES (?, FALSE)", [task]);
+  res.redirect('/');
 });
 
-router.post('/create', function (req, res, next) {
-    const { task } = req.body;
-    try {
-      req.db.query('INSERT INTO todos (task) VALUES (?);', [task], (err, results) => {
-        if (err) {
-          console.error('Error adding todo:', err);
-          return res.status(500).send('Error adding todo');
-        }
-        console.log('Todo added successfully:', results);
-        // Redirect to the home page after adding
-        res.redirect('/');
-      });
-    } catch (error) {
-      console.error('Error adding todo:', error);
-      res.status(500).send('Error adding todo');
-    }
+// Delete task
+router.post('/delete/:id', async function(req, res, next) {
+  await db.query("DELETE FROM tasks WHERE id = ?", [req.params.id]);
+  res.redirect('/');
 });
 
-router.post('/delete', function (req, res, next) {
-    const { id } = req.body;
-    try {
-      req.db.query('DELETE FROM todos WHERE id = ?;', [id], (err, results) => {
-        if (err) {
-          console.error('Error deleting todo:', err);
-          return res.status(500).send('Error deleting todo');
-        }
-        console.log('Todo deleted successfully:', results);
-        // Redirect to the home page after deletion
-        res.redirect('/');
-    });
-    }catch (error) {
-        console.error('Error deleting todo:', error);
-        res.status(500).send('Error deleting todo:');
-    }
+// Mark task complete
+router.post('/complete/:id', async function(req, res, next) {
+  await db.query("UPDATE tasks SET completed = TRUE WHERE id = ?", [req.params.id]);
+  res.redirect('/');
+});
+
+// Edit task text
+router.post('/edit/:id', async function(req, res, next) {
+  const newTask = req.body.task;
+
+  if (!newTask || newTask.trim() === "") {
+    return res.redirect('/?error=empty');
+  }
+
+  await db.query("UPDATE tasks SET task = ? WHERE id = ?", [newTask, req.params.id]);
+  res.redirect('/');
 });
 
 module.exports = router;
